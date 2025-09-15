@@ -33,9 +33,6 @@ ENV ENV_NAME=sit
 # Copy binary from builder
 COPY --from=builder /app/cmd/server/server .
 
-# (Optional) Copy configs if needed
-COPY configs/ /root/configs/
-
 # Expose port
 EXPOSE 8080
 
