@@ -14,10 +14,10 @@ import (
 
 func initializeApp(cfg *config.Config) (*gin.Engine, error) {
 	// ===== Setup Database =====
-	_, err := setupDatabase(cfg)
-	if err != nil {
-		return nil, err
-	}
+	// _, err := setupDatabase(cfg)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	// =====  Initialize LINE Bot client =====
 	bot, err := linebot.New(cfg.Line.ChannelSecret, cfg.Line.ChannelToken)
@@ -27,6 +27,7 @@ func initializeApp(cfg *config.Config) (*gin.Engine, error) {
 
 	// ===== Setup Router =====
 	router := gin.New()
+	router.Use(gin.Recovery())
 
 	// ===== Setup Routes =====
 	http.SetupRoutes(router, bot)
