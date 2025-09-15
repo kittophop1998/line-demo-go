@@ -1,40 +1,43 @@
-# ===== Stage 1: Build =====
-FROM golang:1.21-alpine AS builder
+# ---------------------------------------------------------
+# Stage 1: Build Go binary
+# ---------------------------------------------------------
+FROM golang:1.23.8-alpine AS builder
 
-# Set working directory
+# Set workdir
 WORKDIR /app
 
-# Copy go.mod and go.sum first (to cache deps)
+# Copy go.mod/go.sum and download dependencies
 COPY go.mod go.sum ./
+RUN go mod download && go mod verify
 
-# Download dependencies
-RUN go mod download
-
-# Copy source code
+# Copy project files
 COPY . .
 
-# Build binary
-RUN go build -o bot .
+# Move to working dir for main.go
+WORKDIR /app/cmd/server
 
-# ===== Stage 2: Run =====
-FROM alpine:latest
+# Build Go binary
+RUN go build -o server .
 
-# Install ca-certificates (required for HTTPS requests)
-RUN apk --no-cache add ca-certificates
+# ---------------------------------------------------------
+# Stage 2: Run with Google Chrome
+# ---------------------------------------------------------
+FROM debian:stable-slim
 
-# Set working directory
-WORKDIR /app
+# Set workdir
+WORKDIR /root/
+
+# Set environment variable
+ENV ENV_NAME=sit
 
 # Copy binary from builder
-COPY --from=builder /app/bot .
+COPY --from=builder /app/cmd/server/server .
 
-# Set environment variables (optional)
-# ENV LINE_CHANNEL_SECRET=your_secret
-# ENV LINE_CHANNEL_TOKEN=your_token
-# ENV PORT=8080
+# (Optional) Copy configs if needed
+COPY configs/ /root/configs/
 
 # Expose port
 EXPOSE 8080
 
-# Command to run
-CMD ["./bot"]
+# Command
+CMD ["./server"]
