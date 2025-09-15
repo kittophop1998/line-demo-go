@@ -36,7 +36,7 @@ WORKDIR /app
 COPY --from=builder /app/cmd/server/server .
 
 # (Optional) Copy configs if needed
-COPY configs/ /root/configs/
+COPY configs ./configs
 
 # Expose port
 EXPOSE 8080
