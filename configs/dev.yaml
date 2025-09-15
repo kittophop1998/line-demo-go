@@ -1,0 +1,23 @@
+# Application Configuration
+app:
+  name: "Line Service"
+  version: "1.0.0"
+
+# Server Configuration
+server:
+  port: 8080
+  gin_mode: "debug"  # Mode: "debug", "release"
+  log_level: "info"  # Logging level: "debug", "info", "warn", "error"
+
+# Database Configuration (PostgreSQL)
+database:
+  host: "localhost"
+  port: 5432
+  user: "postgres"
+  password: "postgres"
+  dbname: "postgres"
+  sslmode: "disable"
+
+line:
+  channel_secret: "3905d4f46c24c2475a877125cd81c748"
+  channel_token: "qzzM//7rjcjHKHmBcWcHDe0BawtyuiOHekg4i0HHdu+UVdb5P0WZwIAGqK8ULDFwcA+1jbUYBf0EuduAtgjoD1Ejj4wcdveVZbXQAyhMl/1MfkvY9o64o4T9p9x03Tksk54bvujGn99jg1AbU42FNAdB04t89/1O/w1cDnyilFU="

@@ -1,53 +1,86 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"line-bot/infrastructure/config"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/joho/godotenv"
-	"github.com/line/line-bot-sdk-go/linebot"
 )
 
 func main() {
-	// =====  Load environment variables =====
-	_ = godotenv.Load()
-	channelSecret := os.Getenv("LINE_CHANNEL_SECRET")
-	channelToken := os.Getenv("LINE_CHANNEL_ACCESS_TOKEN")
+	// ===== Load environment variables =====
+	loadEnv()
 
-	bot, err := linebot.New(channelSecret, channelToken)
+	// ===== Load configuration =====
+	cfg := loadConfig()
+
+	// ===== Initialize application =====
+	router := initializeAppOrExit(cfg)
+
+	// ===== Start server with graceful shutdown =====
+	startServer(router, cfg.Server.Port)
+}
+
+// --------------- Helper Functions ---------------
+func loadEnv() {
+	if err := godotenv.Load(); err != nil {
+		log.Println("INFO: No .env file found, using system environment")
+	}
+}
+
+func loadConfig() *config.Config {
+	env := os.Getenv("ENV_NAME")
+	cfg, err := config.LoadConfig(env)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("FATAL: Failed to load configuration: %v", err)
+	}
+	return cfg
+}
+
+func initializeAppOrExit(cfg *config.Config) http.Handler {
+	router, err := initializeApp(cfg)
+	if err != nil {
+		log.Fatalf("FATAL: Failed to initialize app: %v", err)
+	}
+	return router
+}
+
+func startServer(handler http.Handler, port int) {
+	addr := fmt.Sprintf(":%d", port)
+	server := &http.Server{
+		Addr:    addr,
+		Handler: handler,
 	}
 
-	http.HandleFunc("/callback", func(w http.ResponseWriter, req *http.Request) {
-		events, err := bot.ParseRequest(req)
-		if err != nil {
-			if err == linebot.ErrInvalidSignature {
-				w.WriteHeader(400)
-			} else {
-				w.WriteHeader(500)
-			}
-			return
+	// Start server in goroutine
+	go func() {
+		log.Printf("INFO: Starting server on port %d", port)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("FATAL: Server error: %v", err)
 		}
+	}()
 
-		for _, event := range events {
-			if event.Type == linebot.EventTypeMessage {
-				switch message := event.Message.(type) {
-				case *linebot.TextMessage:
-					// ตอบกลับข้อความ
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("คุณพิมพ์ว่า: "+message.Text)).Do(); err != nil {
-						log.Print(err)
-					}
-				}
-			}
-		}
-	})
+	// Wait for shutdown signal
+	gracefulShutdown(server)
+}
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+func gracefulShutdown(server *http.Server) {
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+	<-stop
+
+	log.Println("INFO: Shutting down server...")
+
+	ctx := context.Background()
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("FATAL: Failed to gracefully shutdown: %v", err)
 	}
-	log.Printf("Server running on port %s", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+
+	log.Println("INFO: Server stopped")
 }
