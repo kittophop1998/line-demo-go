@@ -1,9 +1,13 @@
 package database
 
-type DebtPostgres struct{}
+import "gorm.io/gorm"
 
-func NewDebtRepo() DebtPostgres {
-	return DebtPostgres{}
+type DebtPostgres struct {
+	db *gorm.DB
+}
+
+func NewDebtRepo(db *gorm.DB) DebtPostgres {
+	return DebtPostgres{db: db}
 }
 
 func (r *DebtPostgres) GetDebts() (string, error) {

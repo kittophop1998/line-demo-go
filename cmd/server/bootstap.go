@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"line-bot/infrastructure/config"
 	"line-bot/internal/app/handler/http"
+	"line-bot/internal/app/usecase"
 	"line-bot/internal/platform/database"
 	"log"
 
@@ -14,10 +15,10 @@ import (
 
 func initializeApp(cfg *config.Config) (*gin.Engine, error) {
 	// ===== Setup Database =====
-	// _, err := setupDatabase(cfg)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	db, err := setupDatabase(cfg)
+	if err != nil {
+		return nil, err
+	}
 
 	// =====  Initialize LINE Bot client =====
 	bot, err := linebot.New(cfg.Line.ChannelSecret, cfg.Line.ChannelToken)
@@ -25,12 +26,17 @@ func initializeApp(cfg *config.Config) (*gin.Engine, error) {
 		log.Fatal(err)
 	}
 
+	// ===== Setup Repository =====
+	debtRepo := database.NewDebtRepo(db)
+	debtUC := usecase.NewDebtUseCase(debtRepo)
+	handler := http.NewLineBotHandler(bot, debtUC)
+
 	// ===== Setup Router =====
 	router := gin.New()
 	router.Use(gin.Recovery())
 
 	// ===== Setup Routes =====
-	http.SetupRoutes(router, bot)
+	http.SetupRoutes(router, handler)
 
 	return router, nil
 }

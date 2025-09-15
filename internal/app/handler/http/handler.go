@@ -6,30 +6,29 @@ import (
 	"strings"
 
 	"line-bot/internal/app/usecase"
-	"line-bot/internal/platform/database"
 
 	"github.com/gin-gonic/gin"
 	"github.com/line/line-bot-sdk-go/linebot"
 )
 
-// LineBotHandler คือ Handler สำหรับ LINE Bot
 type LineBotHandler struct {
 	Bot      *linebot.Client
+	UseCase  *usecase.DebtUseCase
 	commands map[string]func(event *linebot.Event)
 }
 
-// NewLineBotHandler สร้าง instance พร้อม command map
-func NewLineBotHandler(bot *linebot.Client) *LineBotHandler {
-	debtRepo := database.NewDebtRepo()
-	debtUC := usecase.NewDebtUseCase(debtRepo)
-
+func NewLineBotHandler(bot *linebot.Client, debtUC *usecase.DebtUseCase) *LineBotHandler {
+	// ===== Initialize Handler =====
 	h := &LineBotHandler{
-		Bot: bot,
+		Bot:      bot,
+		commands: make(map[string]func(event *linebot.Event)),
+		UseCase:  debtUC,
 	}
 
+	// === Setup commands ====
 	h.commands = map[string]func(event *linebot.Event){
 		"check debt": func(e *linebot.Event) {
-			debt, err := debtUC.GetDebts()
+			debt, err := h.UseCase.GetDebts()
 			if err != nil {
 				h.replyText(e, "Error fetching debt info")
 				return
@@ -37,6 +36,7 @@ func NewLineBotHandler(bot *linebot.Client) *LineBotHandler {
 			h.replyText(e, "Your debt: "+debt)
 		},
 	}
+
 	return h
 }
 
@@ -76,12 +76,14 @@ func (h *LineBotHandler) dispatch(event *linebot.Event) {
 		} else {
 			h.replyText(event, "Unknown command: "+msg.Text)
 		}
+	default:
+		log.Printf("Unhandled message type: %T", msg)
 	}
 }
 
 // replyText ส่งข้อความตอบกลับ
 func (h *LineBotHandler) replyText(event *linebot.Event, text string) {
 	if _, err := h.Bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(text)).Do(); err != nil {
-		log.Println("Failed to reply:", err)
+		log.Printf("Failed to reply to user %s: %v", event.Source.UserID, err)
 	}
 }
