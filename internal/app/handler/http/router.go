@@ -28,7 +28,14 @@ func SetupRoutes(router *gin.Engine, bot *linebot.Client) {
 			if event.Type == linebot.EventTypeMessage {
 				switch message := event.Message.(type) {
 				case *linebot.TextMessage:
-					// ตอบกลับข้อความ
+					if message.Text == "ping" {
+						if _, err := bot.ReplyMessage(event.ReplyToken,
+							linebot.NewTextMessage("pong")).Do(); err != nil {
+							log.Println("Failed to reply message:", err)
+						}
+						continue
+					}
+
 					if _, err := bot.ReplyMessage(event.ReplyToken,
 						linebot.NewTextMessage("คุณพิมพ์ว่า: "+message.Text)).Do(); err != nil {
 						log.Println("Failed to reply message:", err)
