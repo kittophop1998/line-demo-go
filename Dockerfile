@@ -28,7 +28,8 @@ FROM debian:stable-slim
 WORKDIR /root/
 
 # Set environment variable
-ENV ENV_NAME=sit
+ENV LINE_CHANNEL_SECRET=3905d4f46c24c2475a877125cd81c748
+ENV LINE_CHANNEL_ACCESS_TOKEN=qzzM//7rjcjHKHmBcWcHDe0BawtyuiOHekg4i0HHdu+UVdb5P0WZwIAGqK8ULDFwcA+1jbUYBf0EuduAtgjoD1Ejj4wcdveVZbXQAyhMl/1MfkvY9o64o4T9p9x03Tksk54bvujGn99jg1AbU42FNAdB04t89/1O/w1cDnyilFU=
 
 # Copy binary from builder
 COPY --from=builder /app/cmd/server/server .
